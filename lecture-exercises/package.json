@@ -7,13 +7,19 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "tsc": "tsc",
-    "multiply": "tsc && node multiplier.ts"
+    "multiply": "tsc && node multiplier.ts",
+    "dev": "concurrently \"tsc --watch\" \"node --watch index.ts\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/node": "^25.5.0",
+    "concurrently": "^9.2.1",
     "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }
