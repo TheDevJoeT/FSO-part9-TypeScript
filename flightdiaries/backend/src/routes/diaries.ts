@@ -13,7 +13,7 @@ router.get('/', (_req, res: Response<NonSensitiveDiaryEntry[]>) => {
 router.get('/:id', (req, res) => {
   const diary = diaryService.findById(Number(req.params.id));
 
-  if (diary !== undefined) {
+  if (diary) {
     res.send(diary);
   } else {
     res.sendStatus(404);

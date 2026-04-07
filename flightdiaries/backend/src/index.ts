@@ -1,20 +1,17 @@
 import express from 'express';
-import diaryRouter from './routes/diaries.ts';
-import diaryService from './services/diaryService.ts';
-import router from './routes/diaries.ts';
+import cors from 'cors';
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 
-const PORT = 3000;
+import diaryRouter from './routes/diaries.ts';
+
+const PORT = 3001;
 
 app.get('/ping', (_req, res) => {
   console.log('someone pinged here');
   res.send('pong');
-});
-
-router.get('/', (_req, res) => {
-  res.send(diaryService.getNonSensitiveEntries());
 });
 
 app.use('/api/diaries', diaryRouter);

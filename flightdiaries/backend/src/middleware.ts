@@ -1,5 +1,5 @@
 import { type Request, type Response, type NextFunction } from "express";
-import { NewEntrySchema } from "./types.js";
+import { NewEntrySchema } from "./types.ts";
 import { z } from "zod";
 
 export const newDiaryParser = (
@@ -22,7 +22,7 @@ export const errorMiddleware = (
   next: NextFunction,
 ) => {
   if (error instanceof z.ZodError) {
-    res.status(400).send({ error: error.issues });
+    res.status(400).send({ error: (error as z.ZodError).issues });
   } else {
     next(error);
   }
