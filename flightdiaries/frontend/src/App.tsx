@@ -2,11 +2,17 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import type { DiaryEntry, NewDiaryEntry } from "./types";
 
+const weatherOptions = ["sunny", "rainy", "cloudy", "stormy", "windy"] as const;
+const visibilityOptions = ["great", "good", "ok", "poor"] as const;
+
 const App = () => {
   const [diaries, setDiaries] = useState<DiaryEntry[]>([]);
   const [newDate, setNewDate] = useState("");
-  const [newWeather, setNewWeather] = useState("");
-  const [newVisibility, setNewVisibility] = useState("");
+  const [newWeather, setNewWeather] =
+    useState<(typeof weatherOptions)[number]>("sunny");
+  const [newVisibility, setNewVisibility] =
+    useState<(typeof visibilityOptions)[number]>("good");
+  const [newComment, setNewComment] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,6 +30,7 @@ const App = () => {
       date: newDate,
       weather: newWeather,
       visibility: newVisibility,
+      comment: newComment || undefined,
     };
 
     try {
@@ -32,10 +39,13 @@ const App = () => {
         newEntry,
       );
 
-      setDiaries(diaries.concat(response.data));
+      setDiaries((prev) => prev.concat(response.data));
+
+      // reset form
       setNewDate("");
-      setNewWeather("");
-      setNewVisibility("");
+      setNewWeather("sunny");
+      setNewVisibility("good");
+      setNewComment("");
       setError(null);
     } catch (e: unknown) {
       if (axios.isAxiosError(e)) {
@@ -55,30 +65,61 @@ const App = () => {
 
       <h2>Add new entry</h2>
       {error && <p style={{ color: "red" }}>Error: {error}</p>}
+
       <form onSubmit={addDiary}>
         <div>
           date
-          <input value={newDate} onChange={(e) => setNewDate(e.target.value)} />
-        </div>
-
-        <div>
-          weather
           <input
-            value={newWeather}
-            onChange={(e) => setNewWeather(e.target.value)}
+            type="date"
+            value={newDate}
+            onChange={(e) => setNewDate(e.target.value)}
           />
         </div>
 
         <div>
+          weather
+          {weatherOptions.map((option) => (
+            <label key={option} style={{ marginRight: 10 }}>
+              {option}
+              <input
+                type="radio"
+                name="weather"
+                value={option}
+                checked={newWeather === option}
+                onChange={() => setNewWeather(option)}
+              />
+            </label>
+          ))}
+        </div>
+
+        <div>
           visibility
+          {visibilityOptions.map((option) => (
+            <label key={option} style={{ marginRight: 10 }}>
+              {option}
+              <input
+                type="radio"
+                name="visibility"
+                value={option}
+                checked={newVisibility === option}
+                onChange={() => setNewVisibility(option)}
+              />
+            </label>
+          ))}
+        </div>
+
+        <div>
+          comment
           <input
-            value={newVisibility}
-            onChange={(e) => setNewVisibility(e.target.value)}
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
           />
         </div>
 
         <button type="submit">add</button>
       </form>
+
+      <h2>Diary entries</h2>
 
       {diaries.map((diary) => (
         <div key={diary.id}>
