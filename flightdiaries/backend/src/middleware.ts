@@ -22,7 +22,7 @@ export const errorMiddleware = (
   next: NextFunction,
 ) => {
   if (error instanceof z.ZodError) {
-    res.status(400).send({ error: (error as z.ZodError).issues });
+    res.status(400).json({ error: error.issues });
   } else {
     next(error);
   }
