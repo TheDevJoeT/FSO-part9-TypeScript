@@ -34,6 +34,8 @@ const PatientPage = ({ diagnoses }: Props) => {
   const [entryType, setEntryType] = useState<EntryType>("HealthCheck");
   const [error, setError] = useState<string | null>(null);
 
+  const [showForm, setShowForm] = useState(false); // ✅ IMPORTANT
+
   const [diagnosisCodes, setDiagnosisCodes] = useState<string[]>([]);
 
   const [newEntry, setNewEntry] = useState({
@@ -121,6 +123,7 @@ const PatientPage = ({ diagnoses }: Props) => {
       );
 
       setError(null);
+      setShowForm(false); // ✅ CLOSE FORM AFTER SUBMIT
     } catch (e: unknown) {
       if (axios.isAxiosError(e)) {
         const message =
@@ -134,7 +137,6 @@ const PatientPage = ({ diagnoses }: Props) => {
 
   return (
     <div>
-      {/* PATIENT INFO */}
       <h2>
         {patient.name}
         {patient.gender === "male" && <Male />}
@@ -151,170 +153,89 @@ const PatientPage = ({ diagnoses }: Props) => {
         <EntryDetails key={entry.id} entry={entry} diagnoses={diagnoses} />
       ))}
 
-      <h3>Add new entry</h3>
+      <Button
+        variant="contained"
+        onClick={() => setShowForm(true)}
+        sx={{ mt: 2 }}
+      >
+        Add New Entry
+      </Button>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+      {showForm && (
+        <>
+          <h3>Add new entry</h3>
 
-      <FormControl fullWidth>
-        <InputLabel>Entry Type</InputLabel>
-        <Select
-          value={entryType}
-          label="Entry Type"
-          onChange={(e) => setEntryType(e.target.value as EntryType)}
-        >
-          <MenuItem value="HealthCheck">Health Check</MenuItem>
-          <MenuItem value="Hospital">Hospital</MenuItem>
-          <MenuItem value="OccupationalHealthcare">
-            Occupational Healthcare
-          </MenuItem>
-        </Select>
-      </FormControl>
+          {error && <p style={{ color: "red" }}>{error}</p>}
 
-      <form onSubmit={submitNewEntry}>
-        <TextField
-          label="Date"
-          type="date"
-          fullWidth
-          InputLabelProps={{ shrink: true }}
-          value={newEntry.date}
-          onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })}
-        />
-
-        <TextField
-          label="Description"
-          fullWidth
-          value={newEntry.description}
-          onChange={(e) =>
-            setNewEntry({ ...newEntry, description: e.target.value })
-          }
-        />
-
-        <TextField
-          label="Specialist"
-          fullWidth
-          value={newEntry.specialist}
-          onChange={(e) =>
-            setNewEntry({ ...newEntry, specialist: e.target.value })
-          }
-        />
-
-        <FormControl fullWidth>
-          <InputLabel>Diagnosis Codes</InputLabel>
-          <Select
-            multiple
-            value={diagnosisCodes}
-            onChange={(e) => setDiagnosisCodes(e.target.value as string[])}
-            input={<OutlinedInput label="Diagnosis Codes" />}
-            renderValue={(selected) => selected.join(", ")}
-          >
-            {diagnoses.map((d) => (
-              <MenuItem key={d.code} value={d.code}>
-                <Checkbox checked={diagnosisCodes.includes(d.code)} />
-                <ListItemText primary={`${d.code} ${d.name}`} />
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {entryType === "HealthCheck" && (
           <FormControl fullWidth>
-            <InputLabel>Health Rating</InputLabel>
+            <InputLabel>Entry Type</InputLabel>
             <Select
-              value={newEntry.healthCheckRating}
-              label="Health Rating"
-              onChange={(e) =>
-                setNewEntry({
-                  ...newEntry,
-                  healthCheckRating: Number(e.target.value),
-                })
-              }
+              value={entryType}
+              label="Entry Type"
+              onChange={(e) => setEntryType(e.target.value as EntryType)}
             >
-              <MenuItem value={0}>0 — Healthy</MenuItem>
-              <MenuItem value={1}>1 — Low Risk</MenuItem>
-              <MenuItem value={2}>2 — High Risk</MenuItem>
-              <MenuItem value={3}>3 — Critical Risk</MenuItem>
+              <MenuItem value="HealthCheck">Health Check</MenuItem>
+              <MenuItem value="Hospital">Hospital</MenuItem>
+              <MenuItem value="OccupationalHealthcare">
+                Occupational Healthcare
+              </MenuItem>
             </Select>
           </FormControl>
-        )}
 
-        {entryType === "Hospital" && (
-          <>
+          <form onSubmit={submitNewEntry}>
             <TextField
-              label="Discharge Date"
+              label="Date"
               type="date"
               fullWidth
               InputLabelProps={{ shrink: true }}
-              value={newEntry.dischargeDate}
+              value={newEntry.date}
               onChange={(e) =>
-                setNewEntry({
-                  ...newEntry,
-                  dischargeDate: e.target.value,
-                })
+                setNewEntry({ ...newEntry, date: e.target.value })
               }
             />
 
             <TextField
-              label="Discharge Criteria"
+              label="Description"
               fullWidth
-              value={newEntry.dischargeCriteria}
+              value={newEntry.description}
               onChange={(e) =>
-                setNewEntry({
-                  ...newEntry,
-                  dischargeCriteria: e.target.value,
-                })
-              }
-            />
-          </>
-        )}
-
-        {entryType === "OccupationalHealthcare" && (
-          <>
-            <TextField
-              label="Employer Name"
-              fullWidth
-              value={newEntry.employerName}
-              onChange={(e) =>
-                setNewEntry({
-                  ...newEntry,
-                  employerName: e.target.value,
-                })
+                setNewEntry({ ...newEntry, description: e.target.value })
               }
             />
 
             <TextField
-              label="Sick Leave Start"
-              type="date"
+              label="Specialist"
               fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={newEntry.sickLeaveStart}
+              value={newEntry.specialist}
               onChange={(e) =>
-                setNewEntry({
-                  ...newEntry,
-                  sickLeaveStart: e.target.value,
-                })
+                setNewEntry({ ...newEntry, specialist: e.target.value })
               }
             />
 
-            <TextField
-              label="Sick Leave End"
-              type="date"
-              fullWidth
-              InputLabelProps={{ shrink: true }}
-              value={newEntry.sickLeaveEnd}
-              onChange={(e) =>
-                setNewEntry({
-                  ...newEntry,
-                  sickLeaveEnd: e.target.value,
-                })
-              }
-            />
-          </>
-        )}
+            <FormControl fullWidth>
+              <InputLabel>Diagnosis Codes</InputLabel>
+              <Select
+                multiple
+                value={diagnosisCodes}
+                onChange={(e) => setDiagnosisCodes(e.target.value as string[])}
+                input={<OutlinedInput label="Diagnosis Codes" />}
+                renderValue={(selected) => selected.join(", ")}
+              >
+                {diagnoses.map((d) => (
+                  <MenuItem key={d.code} value={d.code}>
+                    <Checkbox checked={diagnosisCodes.includes(d.code)} />
+                    <ListItemText primary={`${d.code} ${d.name}`} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
 
-        <Button type="submit" variant="contained" sx={{ mt: 2 }}>
-          Add
-        </Button>
-      </form>
+            <Button type="submit" variant="contained" sx={{ mt: 2 }}>
+              Add
+            </Button>
+          </form>
+        </>
+      )}
     </div>
   );
 };
