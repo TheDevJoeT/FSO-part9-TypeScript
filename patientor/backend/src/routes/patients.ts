@@ -1,8 +1,21 @@
-import express, { type Response } from "express";
+import express, { type Request, type Response } from "express";
 import patientService from "../services/patientService.ts";
-import type { NonSensitivePatient, Patient } from "../types.ts";
+
+import {
+  NewPatientSchema,
+  NewHospitalEntrySchema,
+  NewHealthCheckEntrySchema,
+  NewOccupationalEntrySchema,
+} from "../types.ts";
+
+import type {
+  NonSensitivePatient,
+  Patient,
+  Entry,
+  NewEntry,
+} from "../types.ts";
+
 import { z } from "zod";
-import { NewPatientSchema, NewEntrySchema } from "../types.ts";
 
 const router = express.Router();
 
@@ -10,44 +23,71 @@ router.get("/", (_req, res: Response<NonSensitivePatient[]>) => {
   res.send(patientService.getNonSensitivePatients());
 });
 
-router.post("/", (_req, res: Response<Patient | { error: unknown }>) => {
+router.get("/:id", (req, res: Response<Patient | undefined>) => {
+  const patient = patientService.getPatientById(req.params.id);
+
+  if (!patient) {
+    return res.sendStatus(404);
+  }
+
+  return res.send(patient);
+});
+
+router.post("/", (req, res: Response<Patient | { error: unknown }>) => {
   try {
-    const newPatient = NewPatientSchema.parse(_req.body);
+    const newPatient = NewPatientSchema.parse(req.body);
     const addedPatient = patientService.addPatient(newPatient);
     res.json(addedPatient);
-  } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      res.status(400).send({ error: error.issues });
+  } catch (e: unknown) {
+    if (e instanceof z.ZodError) {
+      res.status(400).json({ error: e.issues });
     } else {
-      res.status(400).send({ error: "Unknown error" });
+      res.status(400).json({ error: "Unknown error" });
     }
   }
 });
 
-router.get("/:id", (req, res) => {
-  const patient = patientService.findById(req.params.id);
+router.post(
+  "/:id/entries",
+  (
+    req: Request<{ id: string }, Entry | { error: unknown }, unknown>,
+    res: Response<Entry | { error: unknown }>,
+  ) => {
+    try {
+      const body = req.body as { type: string };
+      let newEntry;
 
-  if (patient) {
-    res.send(patient);
-  } else {
-    res.sendStatus(404);
-  }
-});
+      switch (body.type) {
+        case "Hospital":
+          newEntry = NewHospitalEntrySchema.parse(req.body);
+          break;
 
-router.post("/:id/entries", (req, res) => {
-  try {
-    const newEntry = NewEntrySchema.parse(req.body);
+        case "HealthCheck":
+          newEntry = NewHealthCheckEntrySchema.parse(req.body);
+          break;
 
-    const addedEntry = patientService.addEntry(req.params.id, newEntry);
+        case "OccupationalHealthcare":
+          newEntry = NewOccupationalEntrySchema.parse(req.body);
+          break;
 
-    res.json(addedEntry);
-  } catch (error: unknown) {
-    if (error instanceof z.ZodError) {
-      res.status(400).send({ error: error.issues });
-    } else {
-      res.status(400).send({ error: "Unknown error" });
+        default:
+          throw new Error("Invalid entry type");
+      }
+
+      const addedEntry = patientService.addEntry(
+        req.params.id,
+        newEntry as NewEntry,
+      );
+
+      res.json(addedEntry);
+    } catch (e: unknown) {
+      if (e instanceof z.ZodError) {
+        res.status(400).json({ error: e.issues });
+      } else {
+        res.status(400).json({ error: "Unknown error" });
+      }
     }
-  }
-});
+  },
+);
 
 export default router;
