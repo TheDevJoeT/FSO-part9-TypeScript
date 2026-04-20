@@ -21,8 +21,12 @@ export const NewPatientSchema = z.object({
 
 export type NewPatient = z.infer<typeof NewPatientSchema>;
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface Entry {}
+
 export interface Patient extends NewPatient {
   id: string;
+  entries: Entry[];
 }
 
-export type NonSensitivePatient = Omit<Patient, "ssn">;
+export type NonSensitivePatient = Omit<Patient, 'ssn' | 'entries'>;
