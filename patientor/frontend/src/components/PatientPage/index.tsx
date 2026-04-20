@@ -2,10 +2,26 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-import { Patient, Diagnosis } from "../../types";
+import {
+  TextField,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  OutlinedInput,
+  Checkbox,
+  ListItemText,
+  Button,
+} from "@mui/material";
+
+import { Patient, Diagnosis, Entry } from "../../types";
 import { apiBaseUrl } from "../../constants";
 
 import { Male, Female } from "@mui/icons-material";
+import EntryDetails from "./EntryDetails";
+import patientService from "../../services/patients";
+
+type EntryType = "HealthCheck" | "Hospital" | "OccupationalHealthcare";
 
 interface Props {
   diagnoses: Diagnosis[];
@@ -13,7 +29,27 @@ interface Props {
 
 const PatientPage = ({ diagnoses }: Props) => {
   const { id } = useParams<{ id: string }>();
+
   const [patient, setPatient] = useState<Patient | null>(null);
+  const [entryType, setEntryType] = useState<EntryType>("HealthCheck");
+  const [error, setError] = useState<string | null>(null);
+
+  const [diagnosisCodes, setDiagnosisCodes] = useState<string[]>([]);
+
+  const [newEntry, setNewEntry] = useState({
+    date: "",
+    description: "",
+    specialist: "",
+
+    healthCheckRating: 0,
+
+    dischargeDate: "",
+    dischargeCriteria: "",
+
+    employerName: "",
+    sickLeaveStart: "",
+    sickLeaveEnd: "",
+  });
 
   useEffect(() => {
     const fetchPatient = async () => {
@@ -24,12 +60,81 @@ const PatientPage = ({ diagnoses }: Props) => {
     void fetchPatient();
   }, [id]);
 
-  if (!patient) {
-    return <div>Loading...</div>;
-  }
+  if (!patient) return <div>Loading...</div>;
+
+  const submitNewEntry = async (event: React.SyntheticEvent) => {
+    event.preventDefault();
+
+    try {
+      let entryToSend;
+
+      const base = {
+        date: newEntry.date,
+        description: newEntry.description,
+        specialist: newEntry.specialist,
+        diagnosisCodes: diagnosisCodes.length ? diagnosisCodes : undefined,
+      };
+
+      switch (entryType) {
+        case "HealthCheck":
+          entryToSend = {
+            ...base,
+            type: "HealthCheck",
+            healthCheckRating: newEntry.healthCheckRating,
+          };
+          break;
+
+        case "Hospital":
+          entryToSend = {
+            ...base,
+            type: "Hospital",
+            discharge: {
+              date: newEntry.dischargeDate,
+              criteria: newEntry.dischargeCriteria,
+            },
+          };
+          break;
+
+        case "OccupationalHealthcare":
+          entryToSend = {
+            ...base,
+            type: "OccupationalHealthcare",
+            employerName: newEntry.employerName,
+            sickLeave:
+              newEntry.sickLeaveStart && newEntry.sickLeaveEnd
+                ? {
+                    startDate: newEntry.sickLeaveStart,
+                    endDate: newEntry.sickLeaveEnd,
+                  }
+                : undefined,
+          };
+          break;
+
+        default:
+          throw new Error("Unhandled type");
+      }
+
+      const addedEntry: Entry = await patientService.addEntry(id!, entryToSend);
+
+      setPatient((prev) =>
+        prev ? { ...prev, entries: prev.entries.concat(addedEntry) } : prev,
+      );
+
+      setError(null);
+    } catch (e: unknown) {
+      if (axios.isAxiosError(e)) {
+        const message =
+          e.response?.data?.error?.[0]?.message || "Something went wrong";
+        setError(message);
+      } else {
+        setError("Unknown error");
+      }
+    }
+  };
 
   return (
     <div>
+      {/* PATIENT INFO */}
       <h2>
         {patient.name}
         {patient.gender === "male" && <Male />}
@@ -43,34 +148,173 @@ const PatientPage = ({ diagnoses }: Props) => {
       <h3>entries</h3>
 
       {patient.entries.map((entry) => (
-        <div
-          key={entry.id}
-          style={{
-            border: "1px solid gray",
-            marginBottom: "10px",
-            padding: "10px",
-          }}
-        >
-          <p>
-            <strong>{entry.date}</strong> — {entry.description}
-          </p>
-
-          {/* ✅ diagnosis codes with descriptions */}
-          {entry.diagnosisCodes && (
-            <ul>
-              {entry.diagnosisCodes.map((code) => {
-                const diagnosis = diagnoses.find((d) => d.code === code);
-
-                return (
-                  <li key={code}>
-                    {code} {diagnosis ? diagnosis.name : ""}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
+        <EntryDetails key={entry.id} entry={entry} diagnoses={diagnoses} />
       ))}
+
+      <h3>Add new entry</h3>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <FormControl fullWidth>
+        <InputLabel>Entry Type</InputLabel>
+        <Select
+          value={entryType}
+          label="Entry Type"
+          onChange={(e) => setEntryType(e.target.value as EntryType)}
+        >
+          <MenuItem value="HealthCheck">Health Check</MenuItem>
+          <MenuItem value="Hospital">Hospital</MenuItem>
+          <MenuItem value="OccupationalHealthcare">
+            Occupational Healthcare
+          </MenuItem>
+        </Select>
+      </FormControl>
+
+      <form onSubmit={submitNewEntry}>
+        <TextField
+          label="Date"
+          type="date"
+          fullWidth
+          InputLabelProps={{ shrink: true }}
+          value={newEntry.date}
+          onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })}
+        />
+
+        <TextField
+          label="Description"
+          fullWidth
+          value={newEntry.description}
+          onChange={(e) =>
+            setNewEntry({ ...newEntry, description: e.target.value })
+          }
+        />
+
+        <TextField
+          label="Specialist"
+          fullWidth
+          value={newEntry.specialist}
+          onChange={(e) =>
+            setNewEntry({ ...newEntry, specialist: e.target.value })
+          }
+        />
+
+        <FormControl fullWidth>
+          <InputLabel>Diagnosis Codes</InputLabel>
+          <Select
+            multiple
+            value={diagnosisCodes}
+            onChange={(e) => setDiagnosisCodes(e.target.value as string[])}
+            input={<OutlinedInput label="Diagnosis Codes" />}
+            renderValue={(selected) => selected.join(", ")}
+          >
+            {diagnoses.map((d) => (
+              <MenuItem key={d.code} value={d.code}>
+                <Checkbox checked={diagnosisCodes.includes(d.code)} />
+                <ListItemText primary={`${d.code} ${d.name}`} />
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {entryType === "HealthCheck" && (
+          <FormControl fullWidth>
+            <InputLabel>Health Rating</InputLabel>
+            <Select
+              value={newEntry.healthCheckRating}
+              label="Health Rating"
+              onChange={(e) =>
+                setNewEntry({
+                  ...newEntry,
+                  healthCheckRating: Number(e.target.value),
+                })
+              }
+            >
+              <MenuItem value={0}>0 — Healthy</MenuItem>
+              <MenuItem value={1}>1 — Low Risk</MenuItem>
+              <MenuItem value={2}>2 — High Risk</MenuItem>
+              <MenuItem value={3}>3 — Critical Risk</MenuItem>
+            </Select>
+          </FormControl>
+        )}
+
+        {entryType === "Hospital" && (
+          <>
+            <TextField
+              label="Discharge Date"
+              type="date"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={newEntry.dischargeDate}
+              onChange={(e) =>
+                setNewEntry({
+                  ...newEntry,
+                  dischargeDate: e.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Discharge Criteria"
+              fullWidth
+              value={newEntry.dischargeCriteria}
+              onChange={(e) =>
+                setNewEntry({
+                  ...newEntry,
+                  dischargeCriteria: e.target.value,
+                })
+              }
+            />
+          </>
+        )}
+
+        {entryType === "OccupationalHealthcare" && (
+          <>
+            <TextField
+              label="Employer Name"
+              fullWidth
+              value={newEntry.employerName}
+              onChange={(e) =>
+                setNewEntry({
+                  ...newEntry,
+                  employerName: e.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Sick Leave Start"
+              type="date"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={newEntry.sickLeaveStart}
+              onChange={(e) =>
+                setNewEntry({
+                  ...newEntry,
+                  sickLeaveStart: e.target.value,
+                })
+              }
+            />
+
+            <TextField
+              label="Sick Leave End"
+              type="date"
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              value={newEntry.sickLeaveEnd}
+              onChange={(e) =>
+                setNewEntry({
+                  ...newEntry,
+                  sickLeaveEnd: e.target.value,
+                })
+              }
+            />
+          </>
+        )}
+
+        <Button type="submit" variant="contained" sx={{ mt: 2 }}>
+          Add
+        </Button>
+      </form>
     </div>
   );
 };
