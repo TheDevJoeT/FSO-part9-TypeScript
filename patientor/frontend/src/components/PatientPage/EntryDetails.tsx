@@ -1,11 +1,5 @@
-import { Entry } from "../../types";
-import { Diagnosis } from "../../types";
-
-import { LocalHospital, Work, Favorite } from "@mui/icons-material";
-
-const assertNever = (value: never): never => {
-  throw new Error(`Unhandled entry type: ${JSON.stringify(value)}`);
-};
+import { Entry, Diagnosis } from "../../types";
+import HealthRatingBar from "../HealthRatingBar";
 
 interface Props {
   entry: Entry;
@@ -13,112 +7,73 @@ interface Props {
 }
 
 const EntryDetails = ({ entry, diagnoses }: Props) => {
-  switch (entry.type) {
-    case "Hospital":
-      return (
-        <div
-          style={{
-            border: "1px solid gray",
-            padding: "10px",
-            marginBottom: "10px",
-          }}
-        >
-          <p>
-            <strong>{entry.date}</strong> <LocalHospital />
-          </p>
-          <p>
-            <i>{entry.description}</i>
-          </p>
 
-          {entry.diagnosisCodes && (
-            <ul>
-              {entry.diagnosisCodes.map((code) => {
-                const diagnosis = diagnoses.find((d) => d.code === code);
-                return (
-                  <li key={code}>
-                    {code} {diagnosis ? diagnosis.name : ""}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+  const assertNever = (value: never): never => {
+    throw new Error(`Unhandled entry type: ${JSON.stringify(value)}`);
+  };
 
-          <p>
-            discharge: {entry.discharge.date} — {entry.discharge.criteria}
-          </p>
-          <p>diagnose by {entry.specialist}</p>
-        </div>
-      );
+  return (
+    <div style={{ border: "1px solid gray", padding: "10px", marginBottom: "10px" }}>
+      <p>
+        <strong>{entry.date}</strong>
+      </p>
 
-    case "OccupationalHealthcare":
-      return (
-        <div
-          style={{
-            border: "1px solid gray",
-            padding: "10px",
-            marginBottom: "10px",
-          }}
-        >
-          <p>
-            <strong>{entry.date}</strong> <Work /> {entry.employerName}
-          </p>
-          <p>
-            <i>{entry.description}</i>
-          </p>
+      {/* ✅ THIS IS CRITICAL */}
+      <p>{entry.description}</p>
 
-          {entry.diagnosisCodes && (
-            <ul>
-              {entry.diagnosisCodes.map((code) => {
-                const diagnosis = diagnoses.find((d) => d.code === code);
-                return (
-                  <li key={code}>
-                    {code} {diagnosis ? diagnosis.name : ""}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+      {/* diagnosis codes */}
+      {entry.diagnosisCodes && (
+        <ul>
+          {entry.diagnosisCodes.map(code => {
+            const diagnosis = diagnoses.find(d => d.code === code);
+            return (
+              <li key={code}>
+                {code} {diagnosis ? diagnosis.name : ""}
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
-          <p>diagnose by {entry.specialist}</p>
-        </div>
-      );
+      {(() => {
+        switch (entry.type) {
+          case "HealthCheck":
+            return (
+              <>
+                <HealthRatingBar rating={entry.healthCheckRating} showText />
+                <p>diagnosed by {entry.specialist}</p>
+              </>
+            );
 
-    case "HealthCheck":
-      return (
-        <div
-          style={{
-            border: "1px solid gray",
-            padding: "10px",
-            marginBottom: "10px",
-          }}
-        >
-          <p>
-            <strong>{entry.date}</strong> <Favorite />
-          </p>
-          <p>
-            <i>{entry.description}</i>
-          </p>
+          case "Hospital":
+            return (
+              <>
+                <p>
+                  discharge: {entry.discharge.date} — {entry.discharge.criteria}
+                </p>
+                <p>diagnosed by {entry.specialist}</p>
+              </>
+            );
 
-          {entry.diagnosisCodes && (
-            <ul>
-              {entry.diagnosisCodes.map((code) => {
-                const diagnosis = diagnoses.find((d) => d.code === code);
-                return (
-                  <li key={code}>
-                    {code} {diagnosis ? diagnosis.name : ""}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          case "OccupationalHealthcare":
+            return (
+              <>
+                <p>employer: {entry.employerName}</p>
+                {entry.sickLeave && (
+                  <p>
+                    sick leave: {entry.sickLeave.startDate} — {entry.sickLeave.endDate}
+                  </p>
+                )}
+                <p>diagnosed by {entry.specialist}</p>
+              </>
+            );
 
-          <p>diagnose by {entry.specialist}</p>
-        </div>
-      );
-
-    default:
-      return assertNever(entry);
-  }
+          default:
+            return assertNever(entry);
+        }
+      })()}
+    </div>
+  );
 };
 
 export default EntryDetails;

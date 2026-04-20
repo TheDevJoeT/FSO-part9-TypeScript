@@ -34,7 +34,7 @@ const PatientPage = ({ diagnoses }: Props) => {
   const [entryType, setEntryType] = useState<EntryType>("HealthCheck");
   const [error, setError] = useState<string | null>(null);
 
-  const [showForm, setShowForm] = useState(false); // ✅ IMPORTANT
+  const [showForm, setShowForm] = useState(false);
 
   const [diagnosisCodes, setDiagnosisCodes] = useState<string[]>([]);
 
@@ -55,9 +55,7 @@ const PatientPage = ({ diagnoses }: Props) => {
 
   useEffect(() => {
     const fetchPatient = async () => {
-      const { data } = await axios.get<Patient>(
-        `${apiBaseUrl}/patients/${id}`
-      );
+      const { data } = await axios.get<Patient>(`${apiBaseUrl}/patients/${id}`);
       setPatient(data);
     };
 
@@ -76,7 +74,7 @@ const PatientPage = ({ diagnoses }: Props) => {
         date: newEntry.date,
         description: newEntry.description,
         specialist: newEntry.specialist,
-        diagnosisCodes: diagnosisCodes.length ? diagnosisCodes : undefined,
+        ...(diagnosisCodes.length > 0 ? { diagnosisCodes } : {}),
       };
 
       switch (entryType) {
@@ -120,13 +118,29 @@ const PatientPage = ({ diagnoses }: Props) => {
 
       const addedEntry: Entry = await patientService.addEntry(id!, entryToSend);
 
-      setPatient((prev) =>
-        prev ? { ...prev, entries: prev.entries.concat(addedEntry) } : prev
-      );
+      
+      setPatient({
+        ...patient,
+        entries: patient.entries.concat(addedEntry),
+      });
+
+      
+      setNewEntry({
+        date: "",
+        description: "",
+        specialist: "",
+        healthCheckRating: 0,
+        dischargeDate: "",
+        dischargeCriteria: "",
+        employerName: "",
+        sickLeaveStart: "",
+        sickLeaveEnd: "",
+      });
+
+      setDiagnosisCodes([]);
 
       setError(null);
-      setShowForm(false); // ✅ CLOSE FORM AFTER SUBMIT
-
+      setShowForm(false);
     } catch (e: unknown) {
       if (axios.isAxiosError(e)) {
         const message =
@@ -140,7 +154,6 @@ const PatientPage = ({ diagnoses }: Props) => {
 
   return (
     <div>
-      {/* PATIENT INFO */}
       <h2>
         {patient.name}
         {patient.gender === "male" && <Male />}
@@ -157,16 +170,10 @@ const PatientPage = ({ diagnoses }: Props) => {
         <EntryDetails key={entry.id} entry={entry} diagnoses={diagnoses} />
       ))}
 
-      {/* ✅ REQUIRED BUTTON FOR TEST */}
-      <Button
-        variant="contained"
-        onClick={() => setShowForm(true)}
-        sx={{ mt: 2 }}
-      >
+      <Button variant="contained" onClick={() => setShowForm(true)} aria-label="Add New Entry">
         Add New Entry
       </Button>
 
-      {/* ✅ CONDITIONAL FORM */}
       {showForm && (
         <>
           <h3>New entry</h3>
@@ -223,9 +230,7 @@ const PatientPage = ({ diagnoses }: Props) => {
               <Select
                 multiple
                 value={diagnosisCodes}
-                onChange={(e) =>
-                  setDiagnosisCodes(e.target.value as string[])
-                }
+                onChange={(e) => setDiagnosisCodes(e.target.value as string[])}
                 input={<OutlinedInput label="Diagnosis Codes" />}
                 renderValue={(selected) => selected.join(", ")}
               >
@@ -238,6 +243,7 @@ const PatientPage = ({ diagnoses }: Props) => {
               </Select>
             </FormControl>
 
+            {/* ✅ MUST BE EXACTLY "Add" */}
             <Button type="submit" variant="contained" sx={{ mt: 2 }}>
               Add
             </Button>
