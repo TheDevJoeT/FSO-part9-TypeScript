@@ -169,7 +169,7 @@ const PatientPage = ({ diagnoses }: Props) => {
       {/* ✅ CONDITIONAL FORM */}
       {showForm && (
         <>
-          <h3>Add new entry</h3>
+          <h3>New entry</h3>
 
           {error && <p style={{ color: "red" }}>{error}</p>}
 
